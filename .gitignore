@@ -1,0 +1,20 @@
+# Ambienti virtuali
+venv/
+ENV/
+.env
+
+# Python (file compilati che appesantiscono e basta)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+db.sqlite3
+
+# VS Code settings
+.vscode/
+
+# Cartelle media e statiche (che si generano dopo)
+static/
+media/
+venv/
