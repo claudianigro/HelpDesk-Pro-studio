@@ -20,49 +20,66 @@ from .duplicate_detector import check_duplicate
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def classify_ticket_view(request):
-    serializer = TicketClassificationSerializer(data = request.data)
+    serializer = TicketClassificationSerializer(data=request.data)
     if not serializer.is_valid():
-        return Response(serializer.errors, status = status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     data = serializer.validated_data
-    
-    ticket = get_object_or_404(Ticket, id=data['ticket_id'])
-    
-    risultato_ai = classify_ticket(title=ticket.title, description=ticket.description)
-    
+
     from apps.tickets.services import TicketService
     from apps.categories.models import Category
-    
+
     priority_map = {
         "bassa": "LOW",
         "media": "MEDIUM",
         "elevata": "HIGH",
         "critica": "CRITICAL"
     }
-    
-    new_priority_str = str(risultato_ai.get("priorità", "")).lower().strip()
-    new_priority = priority_map.get(new_priority_str)
-    new_category_name = str(risultato_ai.get("categoria", "")).strip()
-    
-    modified = False
-    
-    if new_priority and new_priority != ticket.priority:
-        old_p = ticket.priority
-        ticket.priority = new_priority
-        TicketService.create_ticket_history(ticket, request.user, "priority", str(old_p) if old_p else "None", str(new_priority))
-        modified = True
-        
-    if new_category_name and new_category_name != "NA":
-        category_obj = Category.objects.filter(name__iexact=new_category_name).first()
-        if category_obj and ticket.category != category_obj:
-            old_c = ticket.category.name if ticket.category else "None"
-            ticket.category = category_obj
-            TicketService.create_ticket_history(ticket, request.user, "category", old_c, category_obj.name)
+
+    ticket_id = data.get('ticket_id')
+
+    if ticket_id:
+        tickets_da_classificare = [get_object_or_404(Ticket, id=ticket_id)]
+    else:
+        tickets_da_classificare = Ticket.objects.filter(status=Ticket.StatusChoice.OPEN)
+
+    risultati = []
+
+    for ticket in tickets_da_classificare:
+        risultato_ai = classify_ticket(title=ticket.title, description=ticket.description)
+
+        new_priority_str = str(risultato_ai.get("priorità", "")).lower().strip()
+        new_priority = priority_map.get(new_priority_str)
+        new_category_name = str(risultato_ai.get("categoria", "")).strip()
+
+        modified = False
+
+        if new_priority and new_priority != ticket.priority:
+            old_p = ticket.priority
+            ticket.priority = new_priority
+            TicketService.create_ticket_history(ticket, request.user, "priority", str(old_p) if old_p else "None", str(new_priority))
             modified = True
+
+        if new_category_name and new_category_name != "NA":
+            category_obj = Category.objects.filter(name__iexact=new_category_name).first()
+            if category_obj and ticket.category != category_obj:
+                old_c = ticket.category.name if ticket.category else "None"
+                ticket.category = category_obj
+                TicketService.create_ticket_history(ticket, request.user, "category", old_c, category_obj.name)
+                modified = True
+
         if modified:
             ticket.save()
-        
-    return Response(risultato_ai, status=status.HTTP_200_OK)
 
+        risultati.append({
+            "ticket_id": ticket.id,
+            "title": ticket.title,
+            "risultato_ai": risultato_ai
+        })
+
+    if ticket_id:
+        return Response(risultati[0]["risultato_ai"], status=status.HTTP_200_OK)
+
+    return Response({"classificati": risultati}, status=status.HTTP_200_OK)
 @swagger_auto_schema(method='post', request_body=ReplyGenerationSerializer)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

@@ -2,10 +2,8 @@ from rest_framework import serializers
 
 class TicketClassificationSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(
-        required=True,
-        error_messages={
-            'required': 'Devi specificare l\'ID del ticket da classificare.',
-        }
+        required=False,
+        allow_null=True
     )
 
 

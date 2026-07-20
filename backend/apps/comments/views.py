@@ -4,6 +4,7 @@ from .models import Comment
 from apps.tickets.models import Ticket
 from .serializers import CommentSerializer
 from apps.tickets.permissions import is_admin, is_operator
+from django.shortcuts import get_object_or_404
 
 class TicketCommentListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
@@ -21,7 +22,7 @@ class TicketCommentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         ticket_id = self.kwargs["ticket_id"]
-        ticket = get_object_or_404(id=ticket_id)
+        ticket = get_object_or_404(Ticket, id=ticket_id)
 
         serializer.save(
             author=self.request.user,

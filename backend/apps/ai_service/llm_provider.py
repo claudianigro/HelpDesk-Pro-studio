@@ -18,7 +18,7 @@ def get_ai_response(prompt):
         
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash", 
+                model="gemini-flash-latest", 
                 contents=prompt
             )
             return response.text

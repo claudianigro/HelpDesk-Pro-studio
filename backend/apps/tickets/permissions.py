@@ -17,7 +17,7 @@ def can_assign_ticket(user, ticket, target_operator):
     if is_admin(user):
         return True
     if is_operator(user):
-        return target_operator.id == user.id and ticket.assigned_to is None:
+        return target_operator.id == user.id and ticket.assigned_to is None
     return False 
 
 def can_reopen_ticket(user):
